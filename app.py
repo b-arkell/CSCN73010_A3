@@ -1,11 +1,13 @@
 """Flask web app that predicts hand-sign digits from uploaded images."""
 # Importing required libs
 from flask import Flask, render_template, request
+from werkzeug.exceptions import RequestEntityTooLarge
 from model import preprocess_img, predict_result
 
 # Instantiating flask app
 app = Flask(__name__)
-
+# Reject uploads larger than 5 MB before they are read into memory
+app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024
 
 # Home route
 @app.route("/")
@@ -27,6 +29,10 @@ def predict_image_file():
         error = "File cannot be processed."
         return render_template("result.html", err=error)
 
+@app.errorhandler(RequestEntityTooLarge)
+def file_too_large(_error):
+    """Show a friendly error when the upload exceeds MAX_CONTENT_LENGTH."""
+    return render_template("result.html", err="File is too large (max 5 MB)."), 413
 
 # Driver code
 if __name__ == "__main__":
