@@ -66,3 +66,20 @@ def test_oversized_upload_rejected(client):
     resp = client.post("/prediction", data=data, content_type="multipart/form-data")
     assert resp.status_code == 413
     assert b"File is too large" in resp.data
+
+def test_csrf_token_required(client):
+    """Security case: a POST without a CSRF token is blocked with 400."""
+    client.application.config["WTF_CSRF_ENABLED"] = True
+    try:
+        data = {"file": (_make_png(), "digit.png")}
+        resp = client.post("/prediction", data=data, content_type="multipart/form-data")
+    finally:
+        client.application.config["WTF_CSRF_ENABLED"] = False
+    assert resp.status_code == 400
+    assert b"CSRF token" in resp.data
+
+
+def test_home_page_includes_csrf_token(client):
+    """Normal case: the upload form contains a hidden CSRF token field."""
+    resp = client.get("/")
+    assert b'name="csrf_token"' in resp.data
