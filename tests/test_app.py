@@ -58,3 +58,11 @@ def test_get_on_prediction_not_allowed(client):
     """Edge case: /prediction only accepts POST, so GET returns 405."""
     resp = client.get("/prediction")
     assert resp.status_code == 405
+
+def test_oversized_upload_rejected(client):
+    """Edge case: an upload over the 5 MB limit is rejected with 413."""
+    big_file = io.BytesIO(b"0" * (6 * 1024 * 1024))
+    data = {"file": (big_file, "huge.png")}
+    resp = client.post("/prediction", data=data, content_type="multipart/form-data")
+    assert resp.status_code == 413
+    assert b"File is too large" in resp.data
